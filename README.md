@@ -1,4 +1,4 @@
-# Blog API
+# Community Forum
 
 This project is a RESTful API built using Node.js, Express, MongoDB, Mongoose, and JWT for authentication and authorization.
 
