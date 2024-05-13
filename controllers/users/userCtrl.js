@@ -1,5 +1,5 @@
-const User = require("../../model/User/User");
-const bcrypt = require('bcryptjs');
+
+const bcrypt =require('bcryptjs');
 const generateToken = require("../../utils/generateToken");
 const getTokenFromHeaders = require("../../utils/generateTokenFromHeaders");
 const { appErr, AppErr } = require("../../utils/appErr");
@@ -7,6 +7,7 @@ const isAdmin = require("../../middlewares/isAdmin");
 const Category = require("../../model/Category/Category");
 const Comment = require("../../model/Comment/Comment");
 const Post = require("../../model/Post/Post");
+const User = require('../../model/User/User');
 
 //-------------------------------------
 //Registering the user
