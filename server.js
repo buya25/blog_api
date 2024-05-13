@@ -6,6 +6,7 @@ const categoriesRouter = require('./routes/categories/categoriesRoute');
 const globalErrHandler = require('./middlewares/globalErrHandler');
 const {appErr, AppErr} = require('./utils/appErr');
 const isAdmin = require('./middlewares/isAdmin');
+const Post = require('./model/Post/Post');
 
 require('dotenv').config();
 require("./config/dbconnect");
@@ -16,6 +17,18 @@ const app = express();
 //----------------------
 app.use(express.json()); //Parse incoming requests with JSON payloads
 
+//home route
+app.get('/', async(req, res){
+  try {
+    const post = await Post.find();
+    res.json({
+      status: "success",
+      data: post
+    });
+  } catch (error) {
+    res.json(error);
+  }
+});
 //----------------------
 //Routes
 //----------------------
