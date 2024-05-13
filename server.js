@@ -18,7 +18,7 @@ const app = express();
 app.use(express.json()); //Parse incoming requests with JSON payloads
 
 //home route
-app.get('/', async(req, res){
+app.get('/', async(req, res)=>{
   try {
     const post = await Post.find();
     res.json({
