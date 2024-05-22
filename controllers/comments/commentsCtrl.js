@@ -1,3 +1,4 @@
+const Category = require("../../model/Category/Category");
 const Comment = require("../../model/Comment/Comment");
 const Post = require("../../model/Post/Post");
 const User = require("../../model/User/User");

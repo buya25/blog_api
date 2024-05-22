@@ -1,5 +1,4 @@
-
-const bcrypt =require('bcryptjs');
+const bcrypt = require("bcryptjs");
 const generateToken = require("../../utils/generateToken");
 const getTokenFromHeaders = require("../../utils/generateTokenFromHeaders");
 const { appErr, AppErr } = require("../../utils/appErr");
@@ -7,7 +6,7 @@ const isAdmin = require("../../middlewares/isAdmin");
 const Category = require("../../model/Category/Category");
 const Comment = require("../../model/Comment/Comment");
 const Post = require("../../model/Post/Post");
-const User = require('../../model/User/User');
+const User = require("../../model/User/User");
 
 //-------------------------------------
 //Registering the user
@@ -23,16 +22,24 @@ const userRegisterCtrl = async (req, res, next) => {
     } else {
       //Hashing the password before saving it in database
       const hashedPassword = await bcrypt.hash(password, 10);
-      const newUser = new User({ firstname, lastname, email, password: hashedPassword });
+      const newUser = new User({
+        firstname,
+        lastname,
+        email,
+        password: hashedPassword,
+      });
       const result = await newUser.save();
       const token = generateToken(result._id); //Generating a jwt token for this user
-      res.status(200).json({ 
+
+      //responding to the user with this details
+      res.status(200).json({
         userId: result._id,
         firstname: result.firstname,
         lastname: result.lastname,
         email: result.email,
         password: result.password,
-         token });
+        token,
+      });
     }
   } catch (error) {
     console.log(`Error in user register controller : ${error.message}`);
@@ -49,24 +56,24 @@ const userloginCtrl = async (req, res) => {
 
   try {
     //check if the email exist in the system
-    const userFound = await User.findOne({ email });//we are using select
+    const userFound = await User.findOne({ email }); //we are using select
     //to hide the password from showing up on console
 
     if (!userFound) {
       return res.json({
-        msg: 'Email is not found'
+        msg: "Email is not found",
       });
     }
     //if the user exists then we will compare the entered password with the saved one
     const validPass = await bcrypt.compare(password, userFound.password);
 
     if (!validPass) {
-      return res.status(401).send({ msg: "Invalid login credentials" })
+      return res.status(401).send({ msg: "Invalid login credentials" });
     }
 
     //Return json response with success and token
     res.json({
-      status: 'Login Successful',
+      status: "Login Successful",
       data: {
         firstname: userFound.firstname,
         lastname: userFound.lastname,
@@ -79,8 +86,7 @@ const userloginCtrl = async (req, res) => {
     //display the error in json
     res.status(500).json({ msg: e.message });
   }
-
-}
+};
 
 //-------------------------------------
 //Logout a logged-in user
@@ -92,7 +98,7 @@ const logOutUser = (req, res) => {
       if (err) {
         return res.status(500).send(err);
       }
-      return res.send('logged out');
+      return res.send("logged out");
     });
   } else {
     return res.status(404).send("Error! No Session Found");
@@ -109,29 +115,37 @@ const whoViewedMyProfileCtrl = async (req, res, next) => {
     const user = await User.findById(req.params.id);
     //2. find the user who viewed the original user
     const whoViewed = await User.findById(req.userAuth);
-    //3. check if the original and who viewed are found
-    if(user && whoViewed){
-    //4. check if whoviewed is already in the users viewers array
-    const isUseralreadyViewed = user.viewers.find(
-      viewers => viewers.toString() === whoViewed._id.toJSON()
-    );
-    if(isUseralreadyViewed){
-      res.json({
-        status: "error",
-        message:"This user has already viewed your profile"
-      })
-    }else{
-      //5. Push the whoviewed to the user's viewers array
-      user.viewers.push(whoViewed._id);
-      //6. save the user
-      await  user.save();
-      res.json({
-        status: "success",
-        data: "You have successfully viewed this",
-      })
+    //the person whoViewed cannot view his own profile
+    if (whoViewed._id.toString() === user._id.toString()) {
+      return res.status(400).json({ msg: "You cannot view your own profile" });
+      }else{
+        //3. check if the original and who viewed are found
+    if (user && whoViewed) {
+      //4. check if whoviewed is already in the users viewers array
+      const isUseralreadyViewed = user.viewers.find(
+        (viewers) => viewers.toString() === whoViewed._id.toJSON()
+      );
+      if (isUseralreadyViewed) {
+        res.json({
+          status: "error",
+          message: "This user has already viewed your profile",
+        });
+      } else {
+        //5. Push the whoviewed to the user's viewers array
+        user.viewers.push(whoViewed._id);
+        //6. save the user
+        await user.save();
+        res.json({
+          status: "success",
+          message: `You have just viewed ${whoViewed.firstname} profile`,
+          data: {
+            message: user.firstname,
+          },
+        });
+      }
     }
-    }
-    
+      }
+
   } catch (error) {
     res.json(error.message);
   }
@@ -143,13 +157,18 @@ const whoViewedMyProfileCtrl = async (req, res, next) => {
 //User route in the system
 const userCtrl = async (req, res, next) => {
   try {
+    // Find users based on the filter
     const users = await User.find();
+
     res.json({
       status: "success",
       data: users,
-    })
+    });
   } catch (error) {
-    res.json(error.message);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+    });
   }
 };
 
@@ -162,21 +181,25 @@ const userprofileCtrl = async (req, res, next) => {
     //showing the profile
     const user = await User.findById(req.userAuth);
     //display a response
-    if(user){
+    if (user) {
       return res.status(200).send({
-          message : 'Successfully fetched user details',
-          user : user
+        message: "Successfully fetched user details",
+        user: {
+          userId: user.userId,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          isAdmin: user.isAdmin,
+        },
       });
-    }else{
-        return res.status(404).send({
-            message : 'No such user found'
-        });
+    } else {
+      return res.status(404).send({
+        message: "No such user found",
+      });
     }
   } catch (error) {
     res.json({ message: error.message });
   }
-}
-
+};
 
 //-------------------------------------
 //Profile photo  upload controller
@@ -184,46 +207,48 @@ const userprofileCtrl = async (req, res, next) => {
 
 // Define file upload controller
 const fileUploadController = async (req, res, next) => {
-
   try {
     //1. find the user to be updated
     const userToUpdate = await User.findById(req.userAuth);
     //2 check if the user if found
     if (!userToUpdate) {
-       throw new Error('No such user exists');
+      throw new Error("No such user exists");
     }
     //3. Checking is user is blocked
-    if (userToUpdate.isBlocked){
+    if (userToUpdate.isBlocked) {
       //throw an error
-      throw new Error ('You are blocked by admin! Contact Admin for further assistance');
+      throw new Error(
+        "You are blocked by admin! Contact Admin for further assistance"
+      );
     }
     //4. check if user is updating the image
-    if(req.file){
+    if (req.file) {
       console.log(req.file);
-    //5. update the profile photo
-    await User.findByIdAndUpdate(
-      req.userAuth,
-      {
-        $set: {
-          profilePhoto: req.file.path,
+      //5. update the profile photo
+      await User.findByIdAndUpdate(
+        req.userAuth,
+        {
+          $set: {
+            profilePhoto: req.file.path,
+          },
         },
-      },{
-        new: true,
-      }
-    );
-    res.json({
-      status: "success",
-      data: "profile photo uploaded"
-    })
-    }else{
+        {
+          new: true,
+        }
+      );
       res.json({
-        status:"error",
-        message:'Please provide a valid image'
+        status: "success",
+        data: "profile photo uploaded",
+      });
+    } else {
+      res.json({
+        status: "error",
+        message: "Please provide a valid image",
       });
       console.log("please provied a valide image");
     }
   } catch (error) {
-      console.log(error.message)
+    console.log(error.message);
   }
 };
 
@@ -233,40 +258,42 @@ const fileUploadController = async (req, res, next) => {
 //update user in the system
 const followingCtrl = async (req, res) => {
   try {
+    //check if the user is logged in first
+    if (!req.userAuth) {
+      throw new Error("You are not logged in");
+    }
+
     //1. find user to follow
-    const userToFollow=await User.findById(req.params.id);
+    const userToFollow = await User.findById(req.params.id);
     //2. find user who is following
     const userwhoFollowed = await User.findById(req.userAuth);
     //3. check if user and who followed are found
-    if(userToFollow && userwhoFollowed){
-    //4. Check if userToFollowed is already in user's followers array
-    const isUseralreadyViewed = userToFollow.following.find(
-      follower => follower.toString() === userwhoFollowed._id.toString()
-    );
-    if (isUseralreadyViewed){
-      res.json({
-        status : 'error',
-        message : 'You have already Followed this user!'
-      });
-    }else{
-      //5. Push userwhoFollowed to the user's followers array
-      userToFollow.followers.push(userwhoFollowed._id);
-      //push who userToFollow to the userWhoFollowed's following array
-      userwhoFollowed.following.push(userToFollow._id);
+    if (userToFollow && userwhoFollowed) {
+      //4. Check if userToFollowed is already in user's followers array
+      const isUseralreadyViewed = userToFollow.following.find(
+        (follower) => follower.toString() === userwhoFollowed._id.toString()
+      );
+      if (isUseralreadyViewed) {
+        res.json({
+          status: "error",
+          message: "You have already Followed this user!",
+        });
+      } else {
+        //5. Push userwhoFollowed to the user's followers array
+        userToFollow.followers.push(userwhoFollowed._id);
+        //push who userToFollow to the userWhoFollowed's following array
+        userwhoFollowed.following.push(userToFollow._id);
 
-      //save
-      await userToFollow.save();
-      await userwhoFollowed.save();
-      //return response
-      res.json({
-        status: "success",
-        data:{
-          user: userToFollow,
-        },
-      });
+        //save
+        await userToFollow.save();
+        await userwhoFollowed.save();
+        //return response
+        res.json({
+          status: "Success",
+          message: `You are now following ${userToFollow.firstname}!`,
+        });
+      }
     }
-    }
-
   } catch (error) {
     res.json(error.message);
   }
@@ -282,45 +309,60 @@ const unFollowCtrl = async (req, res, next) => {
     const userToUnFollow = await User.findById(req.params.id);
     //2. Find the user who is unfollowing
     const userWhoIsUnFollowing = await User.findById(req.userAuth);
-    //3. Check if the user exists or not
-    if (userToUnFollow && userWhoIsUnFollowing){
-      //4. check if they are friends or not
-      const isUseralreadyFollowed = userToUnFollow.followers.find(
-        follower => follower.toString() === userWhoIsUnFollowing._id.toString()
-      );
-      if(!isUseralreadyFollowed){
-          //Display the error 
-          return res.status(400).json({
-            status:"fail",
-            message:'You can only UnFollow users that you have followed before'
-          })
-      }else{
-        
-        //5. remove the user from the array of followers for the userToUnFollow
-        userToUnFollow.follower=userToUnFollow.followers.filter((follower)=>
-           follower.toString() !== userWhoIsUnFollowing._id.toString());
-        //6. save the changes on the database
-        await userToUnFollow.save();
-        //7 Remove userTobeunfollowed from the userWhoUnfollowed's following array
-        userWhoIsUnFollowing.following = userWhoIsUnFollowing.following.filter(following=>
-          following.toString() != userToUnFollow._id.toString()
-        );
-        await userWhoIsUnFollowing.save();
 
-        //8. send back a response 
-       return res.status(200).json({
-         status: 'success',
-         data:{
-           userInfo:userToUnFollow
-         }
-       });
+    //making sure that userWhoIsUnFollowing is not unfollowing himself
+    if (userWhoIsUnFollowing._id.toString() === userToUnFollow._id.toString()) {
+      res.json({
+        status: "error",
+        message: "You cannot unfollow yourself!",
+      });
+    } else {
+      //3. Check if the user exists or not
+      if (userToUnFollow && userWhoIsUnFollowing) {
+        //4. check if they are friends or not
+        const isUseralreadyFollowed = userToUnFollow.followers.find(
+          (follower) =>
+            follower.toString() === userWhoIsUnFollowing._id.toString()
+        );
+        if (!isUseralreadyFollowed) {
+          //Display the error
+          return res.status(400).json({
+            status: "fail",
+            message:
+              "You can only UnFollow users that you have followed before",
+          });
+        } else {
+          //5. remove the user from the array of followers for the userToUnFollow
+          userToUnFollow.follower = userToUnFollow.followers.filter(
+            (follower) =>
+              follower.toString() !== userWhoIsUnFollowing._id.toString()
+          );
+          //6. save the changes on the database
+          await userToUnFollow.save();
+          //7 Remove userTobeunfollowed from the userWhoUnfollowed's following array
+          userWhoIsUnFollowing.following =
+            userWhoIsUnFollowing.following.filter(
+              (following) =>
+                following.toString() != userToUnFollow._id.toString()
+            );
+          await userWhoIsUnFollowing.save();
+
+          //8. send back a response
+          return res.status(200).json({
+            status: "success",
+            message: "This the user who you just unfollowed",
+            data: {
+              firstname: userToUnFollow.firstname,
+              lastname: userToUnFollow.lastname,
+            },
+          });
+        }
       }
     }
   } catch (error) {
     res.json(error.message);
   }
 };
-
 //-------------------------------------
 //Block User Profile
 //-------------------------------------
@@ -332,27 +374,25 @@ const blockUserCtrl = async (req, res, next) => {
     //2. find the user who is blocking
     const userWhoBlocked = await User.findById(req.userAuth);
     //3. check if userToBeBlocked and userWhoBlocked are found
-    if(userWhoBlocked && userToBeBlocked){
+    if (userWhoBlocked && userToBeBlocked) {
       //check if the userWhounfollowed is already in the user's blocked array
-      const isUseralreadyBlocked  = userWhoBlocked.blocked.find(
-        blocked => blocked.toString() === userToBeBlocked._id.toString()
+      const isUseralreadyBlocked = userWhoBlocked.blocked.find(
+        (blocked) => blocked.toString() === userToBeBlocked._id.toString()
       );
 
-      if(isUseralreadyBlocked){
+      if (isUseralreadyBlocked) {
         return res.status(409).json({
-          message:"This user has been blocked by you"
-        })
-      }else{
+          message: "This user has been blocked by you",
+        });
+      } else {
         //if not add it to the users blocked list
         userWhoBlocked.blocked.push(userToBeBlocked._id);
         //Update the user in the database with new information
         await userWhoBlocked.save();
         //send back a successfull request along with the updated user info
-        return res.status(200).json({
-          status:'sucess',
-          data:{
-            userInfo:userWhoBlocked
-          }
+        res.status(200).json({
+          status: "Success",
+          message: `You have blocked ${userToBeBlocked.firstname}!`,
         });
       }
     }
@@ -369,11 +409,11 @@ const unblockUserCtrl = async (req, res) => {
   try {
     //1. find the user to be unblocked
     const userToBeUnBlocked = await User.findById(req.params.id);
-    //2. find the user who is unblocking 
+    //2. find the user who is unblocking
     const userWhoUnBlocked = await User.findById(req.userAuth);
     //3. check if userToBeUnBlocked and userWhoUnBlocked is already in the arrays's of userWhoUnBlocked
     const isUseralreadyBlocked = userWhoUnBlocked.blocked.find(
-      blocked => blocked.toString() === userToBeUnBlocked._id.toString()
+      (blocked) => blocked.toString() === userToBeUnBlocked._id.toString()
     );
     if (!isUseralreadyBlocked) {
       throw new Error("You haven't block this user");
@@ -383,14 +423,12 @@ const unblockUserCtrl = async (req, res) => {
       //Save the changes made on the userWhoUnBlocked
       await userWhoUnBlocked.save();
       //Return the updated user info
-      return res.status(200).json({
-        status:"success",
-        data:{
-          userRemovedFromList: "User has been removed from your Block List" ,
-          userNow: userWhoUnBlocked
-        }
-      })
-      }
+
+      res.status(200).json({
+        status: "Success",
+        message: `You have just unblocked ${userWhoUnBlocked.firstname}!`,
+      });
+    }
   } catch (error) {
     res.json(error.message);
   }
@@ -405,17 +443,21 @@ const adminBlockUserCtrl = async (req, res) => {
     //1. find the user to be unblocked
     const userToBeBlocked = await User.findById(req.params.id);
     //2. check if user is found
-    if(!userToBeBlocked){throw new Error('No such user exists')}
+    if (!userToBeBlocked) {
+      throw new Error("No such user exists");
+    }
 
     //Changed the isBlocked to true
-    userToBeBlocked.isBlocked=true;
-    
+    userToBeBlocked.isBlocked = true;
+
     //Update the user in the database
     await userToBeBlocked.save();
     //Send back a success response with the updated user details
+
     res.status(200).json({
-      status:'success',
-      data:userToBeBlocked
+      status: "Success",
+      message: `You have just blocked,
+                 ${userToBeBlocked.firstname}  ${userToBeBlocked.lastname}!`,
     });
   } catch (error) {
     res.json(error.message);
@@ -431,17 +473,24 @@ const adminUnBlockUserCtrl = async (req, res) => {
     //1. find the user to be unblocked
     const userToBeUnBlocked = await User.findById(req.params.id);
     //2. check if user is found
-    if(!userToBeUnBlocked){throw new Error('No such user exists')}
+    if (!userToBeUnBlocked) {
+      throw new Error("No such user exists");
+    }
 
     //Changed the isBlocked to false
-    userToBeUnBlocked.isBlocked=false;
-    
+    userToBeUnBlocked.isBlocked = false;
+
     //Update the user in the database
     await userToBeUnBlocked.save();
-    //Send back a success response with the updated user details
+    //Send back a success response with the updated user detail
+
     res.status(200).json({
-      status:'success',
-      data:userToBeUnBlocked
+      status: "Success",
+      message: `You have just unblocked,`,
+      data: {
+        firstname: userToBeUnBlocked.firstname,
+        lastname: userToBeUnBlocked.lastname,
+      },
     });
   } catch (error) {
     res.json(error.message);
@@ -456,30 +505,34 @@ const userUpdateCtrl = async (req, res, next) => {
   const { email, firstname, lastname } = req.body;
   try {
     //check if email is not taken by any other user
-    if(email){
-
-    const emailTaken = await User.findOne({email});
-    if(emailTaken) throw new Error("Email already in use");
-
+    if (email) {
+      const emailTaken = await User.findOne({ email });
+      if (emailTaken) throw new Error("Email already in use");
     }
 
     //update user details
-    const user = await User .findByIdAndUpdate(req.userAuth,
+    const user = await User.findByIdAndUpdate(
+      req.userAuth,
       {
         firstname,
         lastname,
         email,
-      },{
+      },
+      {
         new: true,
         runValidators: true,
       }
-    )
+    );
     //send a response
     res.status(200).json({
-      status:"succes",
-      message:"Profile Updated Successfully!",
-      data:user
-    })
+      status: "succes",
+      message: "Profile Updated Successfully!",
+      data: {
+        userId: user.id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+      },
+    });
   } catch (error) {
     res.json(error.message);
   }
@@ -493,25 +546,24 @@ const userUpdatePasswordCtrl = async (req, res) => {
   const { password } = req.body;
   try {
     //check if user is updating the password
-    if(password){
+    if (password) {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
       //update user
       await User.findByIdAndUpdate(
-          req.userAuth,
-          { password: hashedPassword },
-          { new: true, runValidators: true }
+        req.userAuth,
+        { password: hashedPassword },
+        { new: true, runValidators: true }
       );
       //response for success
       return res.status(200).json({
-        status : "success",
-        message : "User Password has been updated successfully.",
-        });
-    }else{
+        status: "success",
+        message: "User Password has been updated successfully.",
+      });
+    } else {
       throw new Error("Please provide your current password to update.");
     }
-    
   } catch (error) {
     res.json(error.message);
   }
@@ -528,18 +580,18 @@ const deleteUserAccount = async (req, res, next) => {
     //find all posts to be deleted
     await Post.deleteMany({ user: req.userAuth });
     //delete all comments of the user
-    await Comment.deleteMany({ user: req.userAuth })
+    await Comment.deleteMany({ user: req.userAuth });
     //delete all the category
     await Category.deleteMany({ user: req.userAuth });
 
     await userToDelete.deleteMany();
     //send response
     return res.status(204).json({
-      status:"Success",
-      data:{
-        userId: userToDelete._id
+      status: "Success",
+      data: {
+        userId: userToDelete._id,
       },
-      message: `The account with the id ${userToDelete._id} has been deleted.`
+      message: `The account with the id ${userToDelete._id} has been deleted.`,
     });
   } catch (error) {
     res.json(error.message);
@@ -563,5 +615,5 @@ module.exports = {
   adminBlockUserCtrl,
   adminUnBlockUserCtrl,
   userUpdatePasswordCtrl,
-  deleteUserAccount
-}
+  deleteUserAccount,
+};

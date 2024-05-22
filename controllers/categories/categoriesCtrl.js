@@ -81,7 +81,7 @@ const deleteCategoryCtrl = async (req, res) => {
 const updateCategoryCtrl = async (req, res) => {
   const { title } = req.body;
   try { //find all posts
-    const posts = await Post.find({})
+    const posts = await Category.find({title})
       .populate('user')
       .populate('category', 'title');
 
@@ -92,7 +92,8 @@ const updateCategoryCtrl = async (req, res) => {
       const isBlocked = blockedUsers.includes(req.userAuth);
 
       return isBlocked ? null : post;
-    })
+    });
+    
     const category = await Category.findByIdAndUpdate(
       req.params.id,
       {title},
@@ -110,6 +111,8 @@ const updateCategoryCtrl = async (req, res) => {
     res.json(error.message);
   }
 };
+
+
 module.exports = {
   createNewCategoryCtrl,
   getAllCategoriesCtrl,

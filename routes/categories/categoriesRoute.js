@@ -25,7 +25,7 @@ categoriesRouter.get('/', isLogin, getAllCategoriesCtrl);
 categoriesRouter.delete('/:id', isLogin, deleteCategoryCtrl);
 
   //PUT/api/v1/categories/:id
-categoriesRouter.put('/:id', isLogin, updateCategoryCtrl);  
+categoriesRouter.put(`/:id`, isLogin, updateCategoryCtrl);  
 
 
 

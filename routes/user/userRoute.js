@@ -61,11 +61,11 @@ userRouter.put('/admin-block/:id', isLogin, isAdmin, adminBlockUserCtrl);
 //Put/api/v1/users/admin-unblock/:id
 userRouter.put('/admin-unblock/:id', isLogin, isAdmin, adminUnBlockUserCtrl);
 
-//Put/api/v1/users/admin-unblock/:id
+//Put/api/v1/users/update-password/:id
 userRouter.put('/update-password/', isLogin, userUpdatePasswordCtrl);
 
-//Delete/api/v1/users/admin-unblock/:id
-userRouter.delete('/delete-account', isLogin, deleteUserAccount);
+//Delete/api/v1/users/delete-account/:id
+userRouter.delete('/delete-account/:id', isLogin, deleteUserAccount);
 
 //POST/api/v1/users/:id
 userRouter.post('/profile-photo-upload',
