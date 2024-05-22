@@ -20,10 +20,10 @@ app.use(express.json()); //Parse incoming requests with JSON payloads
 //home route
 app.get("/", async(req, res)=>{
   try {
-    const post = await Post.find();
+    const post = await Post.find();;
     res.json({
       status: "success",
-      data: post
+      data: post,
     });
   } catch (error) {
     res.json(error);
